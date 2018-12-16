@@ -1,0 +1,262 @@
+1.创建工程
+
+2.加入jar包
+
+3.编写web.xml
+
+  <?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://xmlns.jcp.org/xml/ns/javaee" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd" id="WebApp_ID" version="3.1">
+  <display-name>1213ssm</display-name>
+  
+  <!-- 配置sping  -->
+    <context-param>
+		<param-name>contextConfigLocation</param-name>
+		<param-value>classpath:applicationContext.xml</param-value>
+	</context-param>
+	<listener>
+		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+	</listener>
+	
+	
+	<!-- 配置springmvc 前端控制器DispatcherServlet -->
+	<servlet>
+		<servlet-name>springDispatcherServlet</servlet-name>
+		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+		<init-param>
+			<param-name>contextConfigLocation</param-name>
+			<param-value>classpath:springmvc.xml</param-value>
+		</init-param>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>springDispatcherServlet</servlet-name>
+		<url-pattern>*.action</url-pattern>
+	</servlet-mapping>
+	
+	  <filter>
+        <filter-name>encoding</filter-name>
+        <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+         <init-param>
+            <param-name>encoding</param-name>
+            <param-value>utf-8</param-value>
+         </init-param>
+     </filter>
+     <filter-mapping>
+        <filter-name>encoding</filter-name>
+        <url-pattern>/*</url-pattern>
+     </filter-mapping>
+  <welcome-file-list>
+    <welcome-file>index.jsp</welcome-file>
+  </welcome-file-list>
+</web-app>
+
+
+4.编写spring的配置文件 appicationContext.xml
+   <?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	http://www.springframework.org/schema/beans/spring-beans.xsd
+http://www.springframework.org/schema/context 
+http://www.springframework.org/schema/context/spring-context-4.3.xsd
+">
+
+     
+	<context:property-placeholder location="classpath:db.properties" />
+
+(1)db.properties
+ user=root
+password=root
+driverClass=com.mysql.jdbc.Driver
+jdbcUrl=jdbc:mysql://localhost:3306/test
+
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<property name="user" value="${user}"></property>
+		<property name="password" value="${password}"></property>
+		<property name="jdbcUrl" value="${jdbcUrl}"></property>
+		<property name="driverClass" value="${driverClass}"></property>
+	</bean>
+
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource"></property>
+		<property name="typeAliasesPackage" value="com.crx.model"></property>
+	</bean>
+
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.crx.mapper" />
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory" />
+	</bean>
+
+</beans>
+
+5.编写 springmvc.xml
+   <?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" 
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.3.xsd
+ http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+ http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+">
+
+
+
+	<context:component-scan base-package="com.crx"></context:component-scan>
+	<mvc:annotation-driven />
+	<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+	   <property name="suffix" value=".jsp"></property>
+	</bean>
+
+</beans>
+
+6.如果你想的话 可以加入log4j
+
+7.编写页面
+
+8.编写model类（POJO类）
+
+
+//理论上：mapper   service   controller
+但是 我不得
+9.编写 controller
+
+ package com.crx.controller;
+
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import com.crx.model.Goods;
+import com.crx.service.GoodsService;
+
+@Controller
+@RequestMapping("goods")
+public class GoodsController {
+
+	@Autowired
+	private GoodsService gs;
+	
+	@RequestMapping("findAll")
+	public String findAll(Map<String,Object> map){
+		 map.put("goodslist", gs.findAll());
+		return "../success";
+	}
+	
+	@RequestMapping("insert")
+	public String insert(Goods goods){
+		gs.insert(goods);
+		return "redirect:/goods/findAll.action";
+	}
+	
+	@RequestMapping("delete")
+	public String delete(int id){
+		gs.delete(id);
+		return "redirect:/goods/findAll.action";
+	}
+	
+	@RequestMapping("yupdate")
+	public String yupdate(int id,Map<String,Goods> map){
+		map.put("updateGoods", gs.findById(id));
+		return "../update";
+	}
+	
+	@RequestMapping("update")
+	public String update(Goods goods){
+		gs.update(goods);
+		return "redirect:/goods/findAll.action";
+	}
+}
+
+10.编写Service
+package com.crx.service;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.crx.mapper.GoodsMapper;
+import com.crx.model.Goods;
+
+@Service
+public class GoodsService {
+     
+	@Autowired
+	private GoodsMapper gmapper;
+	
+	public List<Goods> findAll(){
+		 return gmapper.findAll();
+	}
+
+	public void insert(Goods goods) {
+		// TODO Auto-generated method stub
+		gmapper.insert(goods);
+	}
+
+	public void delete(int id) {
+		// TODO Auto-generated method stub
+		gmapper.delete(id);
+	}
+
+	public Goods findById(int id) {
+		// TODO Auto-generated method stub
+		return gmapper.findById(id);
+	}
+
+	public void update(Goods goods) {
+		// TODO Auto-generated method stub
+		gmapper.update(goods);
+	}
+}
+
+11.编写 Mapper接口
+package com.crx.mapper;
+
+import java.util.List;
+
+import com.crx.model.Goods;
+
+public interface GoodsMapper {
+    public List<Goods> findAll();
+
+	public void insert(Goods goods);
+
+	public void delete(int id);
+
+	public Goods findById(int id);
+
+	public void update(Goods goods);
+}
+12.编写Mapper.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.crx.mapper.GoodsMapper">
+<select id="findAll" resultType="goods">
+   select * from goods
+</select>
+<insert id="insert" parameterType="goods">
+   insert into goods values(null,#{name})
+</insert>
+
+<delete id="delete" parameterType="int">
+   delete from goods where id=#{id}
+</delete>
+
+<select id="findById" parameterType="int" resultType="goods">
+   select * from goods where id=#{id}
+</select>
+
+<update id="update" parameterType="goods">
+  update goods set name=#{name} where id=#{id}
+</update>
+
+</mapper>
+
+13.部署 运行  ok
+
+
+   
